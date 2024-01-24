@@ -42,7 +42,7 @@ i_integration = 2000
 spec = sb.Spectrometer(devices[0])
 spec.integration_time_micros(i_integration)
 
-output = "/home/pi/spectrometer/measurements/"
+output = "/home/pi/spectromer_work/measurements/"
 txt_output = "spectrum_" + str(datetime.datetime.now()) + "txt"
 
 if not os.path.isdir(output):
@@ -63,6 +63,7 @@ GPIO.add_event_detect(18,GPIO.RISING)
 i = 5
 
 print("O que deseja fazer?\n0 - Referência do alvo escuro\n1-Referência do alvo branco\n2 - Medição real\n9 - Sair do processo\n")
+GPIO.output(21, False)
 
 while i < 8:
     a14 = GPIO.event_detected(14)
