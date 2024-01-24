@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import datetime
 import os
-from gpiozero import LED, Button
+import RPi.GPIO as GPIO
 
 def measure_target(spec):
     wavelengths = spec.wavelengths()
@@ -27,6 +27,7 @@ if not devices:
     print("Nenhum espectrômetro encontrado.")
     exit()
 
+'''
 spec = sb.Spectrometer(devices[0])
 for i_integration in range(1000, 655350000, 1000):
     print(i_integration)
@@ -36,6 +37,10 @@ for i_integration in range(1000, 655350000, 1000):
         break
 
 spec.integration_time_micros(i_integration)
+'''
+i_integration = 2000
+spec = sb.Spectrometer(devices[0])
+spec.integration_time_micros(i_integration)
 
 output = "/home/pi/spectrometer/measurements/"
 txt_output = "spectrum_" + str(datetime.datetime.now()) + "txt"
@@ -43,19 +48,48 @@ txt_output = "spectrum_" + str(datetime.datetime.now()) + "txt"
 if not os.path.isdir(output):
     os.makedirs(output)
 
-button_background = Button(14)
-button_ref = Button(15)
+GPIO.setwarnings(False)
+GPIO.cleanup()
+GPIO.setmode(GPIO.BCM)
+GPIO.setup(14, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+GPIO.setup(15, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+GPIO.setup(18, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+GPIO.setup(21, GPIO.OUT)
+
+GPIO.add_event_detect(14,GPIO.RISING)
+GPIO.add_event_detect(15,GPIO.RISING)
+GPIO.add_event_detect(18,GPIO.RISING)
 
 i = 5
+
+print("O que deseja fazer?\n0 - Referência do alvo escuro\n1-Referência do alvo branco\n2 - Medição real\n9 - Sair do processo\n")
+
 while i < 8:
-    input_aux = input("O que deseja fazer?\n0 - Referência do alvo escuro\n1-Referência do alvo branco\n2 - Medição real\n9 - Sair do processo\n")
-    i = int(input_aux)
-    if i == 0:
+    a14 = GPIO.event_detected(14)
+    a15 = GPIO.event_detected(15)
+    a18 = GPIO.event_detected(18)
+
+    if a14:
+        aux = "Background"
+        print(f"{aux} measure - Begin\n")
+        GPIO.output(21, True)
         wavelengths_background, spectrum_background = measure_target(spec)
-    if i == 1:
+        print(f"{aux} measure - Finished\n")
+        GPIO.output(21, False)
+    if a15:
+        aux = "Ref"
+        print(f"{aux} measure - Begin\n")
+        GPIO.output(21, True)
         wavelengths_ref, spectrum_ref = measure_target(spec)
-    if i == 2:
+        print(f"{aux} measure - Finished\n")
+        GPIO.output(21, False)
+    if a18:
+        aux = "Normal"
+        print(f"{aux} measure - Begin\n")
+        GPIO.output(21, True)
         wavelengths, spectrum = measure_target(spec)
+        print(f"{aux} measure - Finished\n")
+        GPIO.output(21, False)
 
         k_op = 1e2
         op1 = spectrum_ref - spectrum_background
@@ -76,6 +110,7 @@ while i < 8:
                 f.write(f"{wavelengths[k]}, {op5[k]}\n")
 
 # Desconectar o espectrômetro
+GPIO.cleanup()
 spec.close()
 
 # %%
