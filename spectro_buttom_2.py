@@ -91,9 +91,29 @@ while i < 8:
     if a14:
         aux = "Background"
         print(f"{aux} measure - Begin\n")
+
+        aux_time = str(datetime.datetime.now())
         GPIO.output(21, True)
-        wavelengths_background, spectrum_background = measure_target(spec)
-        time.sleep(time_delay)
+
+        background_values = []
+        for j in range(0, 10):
+            print(f"Measurement number {j}\n")
+            txt_output = "spectrum_" + str(j) + "_" + aux_time + "txt"
+            wavelengths_background, spectrum_background = measure_target(spec)
+            time.sleep(time_delay)
+
+            with open(output + txt_output, "w") as f:
+                f.write(f"Time used to integration {i_integration} ms")
+                f.write("Wavelengths, Spectrum\n")
+                for k in range(np.size(wavelengths_background, axis=0)):
+                    f.write(f"{wavelengths_background[k]}, {spectrum_background[k]}\n")
+            
+            if j == 0:
+                background_values = spectrum_background
+            else:
+                background_values = np.column_stack((background_values, spectrum_background))
+        
+        spectrum_background = np.mean(background_values, axis=0)
         print(f"{aux} measure - Finished\n")
         GPIO.output(21, False)
         aux_a14 = True
@@ -101,9 +121,29 @@ while i < 8:
     if a15:
         aux = "Ref"
         print(f"{aux} measure - Begin\n")
+
+        aux_time = str(datetime.datetime.now())
         GPIO.output(21, True)
-        wavelengths_ref, spectrum_ref = measure_target(spec)
-        time.sleep(time_delay)
+
+        ref_values = []
+        for j in range(0, 10):
+            print(f"Measurement number {j}\n")
+            txt_output = "spectrum_" + str(j) + "_" + aux_time + "txt"
+            wavelengths_ref, spectrum_ref = measure_target(spec)
+            time.sleep(time_delay)
+
+            with open(output + txt_output, "w") as f:
+                f.write(f"Time used to integration {i_integration} ms")
+                f.write("Wavelengths, Spectrum\n")
+                for k in range(np.size(wavelengths_ref, axis=0)):
+                    f.write(f"{wavelengths_ref[k]}, {spectrum_ref[k]}\n")
+            
+            if j == 0:
+                ref_values = ref_values
+            else:
+                ref_values = np.column_stack((ref_values, spectrum_ref))
+        
+        spectrum_ref = np.mean(ref_values, axis=0)
         print(f"{aux} measure - Finished\n")
         GPIO.output(21, False)
         aux_a15 = True
