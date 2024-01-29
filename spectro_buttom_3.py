@@ -161,6 +161,7 @@ while i < 8:
             plt.plot(wavelengths, op5)
             plt.xlabel("Wavelength (nm)")
             plt.ylabel("Reflection (%)")
+            plt.ylim([0, 100])
             plt.savefig("foo.png")
 
             txt_output = "fn_spectrum_" + str(j) + "_" + aux_time + ".txt"
