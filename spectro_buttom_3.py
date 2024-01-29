@@ -25,6 +25,36 @@ def find_optimal_integration_time(spec):
         print(abs(np.max(spectrum) - k_value))
     return optimal_find
 
+def realize_measure(aux, i_integration):  
+
+    print(f"{aux} measure - Begin\n")
+
+    aux_time = str(datetime.datetime.now())
+    GPIO.output(21, True)
+
+    background_values = []
+    for j in range(0, 10):
+        print(f"Measurement number {j}\n")
+        txt_output = aux + "_" + str(j) + "_" + aux_time + ".txt"
+        wavelengths_background, spectrum_background = measure_target(spec)
+        time.sleep(time_delay)
+
+        with open(output + txt_output, "w") as f:
+            f.write(f"Time used to integration {i_integration} ms\n")
+            f.write("Wavelengths, Spectrum\n")
+            for k in range(np.size(wavelengths_background, axis=0)):
+                f.write(f"{wavelengths_background[k]}, {spectrum_background[k]}\n")
+        
+        if j == 0:
+            background_values = spectrum_background
+        else:
+            background_values = np.column_stack((background_values, spectrum_background))
+    
+    spectrum_background = np.mean(background_values, axis=1)
+    print(f"{aux} measure - Finished\n")
+    GPIO.output(21, False)
+    return spectrum_background
+
 GPIO.setwarnings(False)
 GPIO.cleanup()
 GPIO.setmode(GPIO.BCM)
@@ -61,7 +91,7 @@ if not devices:
 
 GPIO.output(21, True)
 spec = sb.Spectrometer(devices[0])
-for i_integration in range(1000, 655350000, 5000):
+for i_integration in range(1000, 655350, 5000):
     print(i_integration)
     spec.integration_time_micros(i_integration)  # Ajustar o tempo de integração conforme necessário
     optimal_find = find_optimal_integration_time(spec)
@@ -94,62 +124,12 @@ while i < 8:
 
     if a14:
         aux = "Background"
-        print(f"{aux} measure - Begin\n")
-
-        aux_time = str(datetime.datetime.now())
-        GPIO.output(21, True)
-
-        background_values = []
-        for j in range(0, 10):
-            print(f"Measurement number {j}\n")
-            txt_output = "spectrum_" + str(j) + "_" + aux_time + "txt"
-            wavelengths_background, spectrum_background = measure_target(spec)
-            time.sleep(time_delay)
-
-            with open(output + txt_output, "w") as f:
-                f.write(f"Time used to integration {i_integration} ms")
-                f.write("Wavelengths, Spectrum\n")
-                for k in range(np.size(wavelengths_background, axis=0)):
-                    f.write(f"{wavelengths_background[k]}, {spectrum_background[k]}\n")
-            
-            if j == 0:
-                background_values = spectrum_background
-            else:
-                background_values = np.column_stack((background_values, spectrum_background))
-        
-        spectrum_background = np.mean(background_values, axis=0)
-        print(f"{aux} measure - Finished\n")
-        GPIO.output(21, False)
+        spectrum_background = realize_measure(aux, i_integration)
         aux_a14 = True
 
     if a15:
         aux = "Ref"
-        print(f"{aux} measure - Begin\n")
-
-        aux_time = str(datetime.datetime.now())
-        GPIO.output(21, True)
-
-        ref_values = []
-        for j in range(0, 10):
-            print(f"Measurement number {j}\n")
-            txt_output = "spectrum_" + str(j) + "_" + aux_time + "txt"
-            wavelengths_ref, spectrum_ref = measure_target(spec)
-            time.sleep(time_delay)
-
-            with open(output + txt_output, "w") as f:
-                f.write(f"Time used to integration {i_integration} ms")
-                f.write("Wavelengths, Spectrum\n")
-                for k in range(np.size(wavelengths_ref, axis=0)):
-                    f.write(f"{wavelengths_ref[k]}, {spectrum_ref[k]}\n")
-            
-            if j == 0:
-                ref_values = ref_values
-            else:
-                ref_values = np.column_stack((ref_values, spectrum_ref))
-        
-        spectrum_ref = np.mean(ref_values, axis=0)
-        print(f"{aux} measure - Finished\n")
-        GPIO.output(21, False)
+        spectrum_ref = realize_measure(aux, i_integration) 
         aux_a15 = True
         
     if a18 and aux_a14 and aux_a15:
@@ -158,26 +138,34 @@ while i < 8:
         aux_time = str(datetime.datetime.now())
 
         for j in range(0, 10):
-            txt_output = "spectrum_" + str(j) + "_" + aux_time + "txt"
             print(f"Measurement number {j}\n")
 
             GPIO.output(21, True)
             wavelengths, spectrum = measure_target(spec)
+
+            txt_output = "bg_spectrum_" + str(j) + "_" + aux_time + ".txt"
+            with open(output + txt_output, "w") as f:
+                f.write(f"Time used to integration {i_integration} ms\n")
+                f.write("Wavelengths, Spectrum\n")
+                for k in range(np.size(spectrum, axis=0)):
+                    f.write(f"{wavelengths[k]}, {spectrum[k]}\n")
 
             k_op = 1e2
             op1 = spectrum_ref - spectrum_background
             op2 = spectrum - spectrum_background
             op3 = op2/op1
             op4 = k_op*op3
-            op5 = op4/np.max(op4)
+            op5 = op4
+            #op5 = op4/np.max(op4)
 
             plt.plot(wavelengths, op5)
             plt.xlabel("Wavelength (nm)")
             plt.ylabel("Reflection (%)")
             plt.savefig("foo.png")
 
+            txt_output = "fn_spectrum_" + str(j) + "_" + aux_time + ".txt"
             with open(output + txt_output, "w") as f:
-                f.write(f"Time used to integration {i_integration} ms")
+                f.write(f"Time used to integration {i_integration} ms\n")
                 f.write("Wavelengths, Spectrum\n")
                 for k in range(np.size(op5, axis=0)):
                     f.write(f"{wavelengths[k]}, {op5[k]}\n")
@@ -194,7 +182,6 @@ while i < 8:
             time.sleep(1)
             GPIO.output(20, False)
             time.sleep(1)
-
 
 # Desconectar o espectrômetro
 GPIO.cleanup()
