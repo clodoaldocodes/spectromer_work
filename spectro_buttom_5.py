@@ -1,4 +1,4 @@
-#%%
+# %%
 import seabreeze.spectrometers as sb
 import matplotlib.pyplot as plt
 import numpy as np
@@ -8,13 +8,15 @@ import RPi.GPIO as GPIO
 import time
 import os
 
+
 def measure_target(spec):
     wavelengths = spec.wavelengths()
     spectrum = spec.intensities()
 
     return wavelengths, spectrum
 
-def realize_measure(aux, i_integration):  
+
+def realize_measure(aux, i_integration):
 
     print(f"{aux} measure - Begin\n")
 
@@ -33,16 +35,19 @@ def realize_measure(aux, i_integration):
             f.write("Wavelengths, Spectrum\n")
             for k in range(np.size(wavelengths_background, axis=0)):
                 f.write(f"{wavelengths_background[k]}, {spectrum_background[k]}\n")
-        
+
         if j == 0:
             background_values = spectrum_background
         else:
-            background_values = np.column_stack((background_values, spectrum_background))
-    
+            background_values = np.column_stack(
+                (background_values, spectrum_background)
+            )
+
     spectrum_background = np.mean(background_values, axis=1)
     print(f"{aux} measure - Finished\n")
     GPIO.output(21, False)
     return spectrum_background
+
 
 GPIO.setwarnings(False)
 GPIO.cleanup()
@@ -54,10 +59,10 @@ GPIO.setup(26, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 GPIO.setup(21, GPIO.OUT)
 GPIO.setup(20, GPIO.OUT)
 
-GPIO.add_event_detect(14,GPIO.RISING)
-GPIO.add_event_detect(15,GPIO.RISING)
-GPIO.add_event_detect(18,GPIO.RISING)
-GPIO.add_event_detect(26,GPIO.RISING)
+GPIO.add_event_detect(14, GPIO.RISING)
+GPIO.add_event_detect(15, GPIO.RISING)
+GPIO.add_event_detect(18, GPIO.RISING)
+GPIO.add_event_detect(26, GPIO.RISING)
 
 GPIO.output(21, False)
 GPIO.output(20, False)
@@ -88,7 +93,9 @@ GPIO.output(21, True)
 time.sleep(2)
 GPIO.output(21, False)
 
-print("O que deseja fazer?\n0 - Referência do alvo escuro\n1-Referência do alvo branco\n2 - Medição real\n9 - Sair do processo\n")
+print(
+    "O que deseja fazer?\n0 - Referência do alvo escuro\n1-Referência do alvo branco\n2 - Medição real\n9 - Sair do processo\n"
+)
 
 aux_a14 = False
 aux_a15 = False
@@ -111,13 +118,21 @@ while i < 8:
             print(f"Measurement number {j}\n")
 
             spec = sb.Spectrometer(devices[0])
-            for i_integration in range(10000, 500000, 10000): 
+            for i_integration in range(10000, 500000, 10000):
                 print(i_integration)
                 spec.integration_time_micros(i_integration)
 
                 wavelengths, spectrum = measure_target(spec)
 
-                txt_output = "bg_spectrum_" + str(j) + "_" + aux_time + "integration_time_" + str(i_integration) + ".txt"
+                txt_output = (
+                    "bg_spectrum_"
+                    + str(j)
+                    + "_"
+                    + aux_time
+                    + "integration_time_"
+                    + str(i_integration)
+                    + ".txt"
+                )
                 with open(output + txt_output, "w") as f:
                     f.write(f"Time used to integration {i_integration} ms\n")
                     f.write("Wavelengths, Spectrum\n")
@@ -131,7 +146,7 @@ while i < 8:
     if a26:
         print("Shutdown\n")
         i = 10
-        for r in range(0,3):
+        for r in range(0, 3):
             GPIO.output(20, True)
             time.sleep(1)
             GPIO.output(20, False)
