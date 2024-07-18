@@ -157,5 +157,3 @@ GPIO.cleanup()
 spec.close()
 
 os.system("shutdown -h now")
-
-# %%
